@@ -19,4 +19,6 @@ sürümleme [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar
 - Servis takibi: detay ekranında `s` ile servis listesine odaklanma ve `j`/`k` ile gezinme.
 - Onaylı servis yeniden başlatma (`r`): yalnızca `allow_actions = true` olan sunucularda; root değilse `sudo -n systemctl restart`, parola istemez; sonuç durum satırında gösterilir.
 - Canlı log görüntüleyici (`l`): `journalctl -f` akışı, sınırlı tampon (5000 satır), takip modu, kaydırma, büyük/küçük harf duyarsız süzme; sunucu çıktısındaki ANSI/kontrol karakterleri temizlenir; kapatınca uzak `journalctl` durdurulur.
+- Log araması: `/` arama (eşleşmeler vurgulanır, Türkçe/çok baytlı metinde güvenli), `n`/`N` ile eşleşmeler arasında gezinme (uçlarda sarar, takipten çıkar), `f` ile yalnızca eşleşenleri gösterme.
+- Restart: root kontrolü SSH kullanıcı adına göre değil, uzakta çalışma anında (`id -u`) yapılır.
 - `--demo`: sahte log akışı ve sahte restart (yalnızca `vds-1` için işlemler açık).

@@ -82,15 +82,18 @@ impl Actions {
     }
 }
 
-/// Uzakta çalışacak restart komutu. Kullanıcı root ise doğrudan, değilse `sudo -n`
-/// (parola istemez, gerekiyorsa hata verir) ile. Ad, parser'daki izin listesiyle doğrulanır.
-// VARSAYIM: "root mu?" kararı yapılandırılmış/çözülmüş SSH kullanıcı adından verilir.
-pub fn restart_command(user: &str, service: &str) -> Result<String, String> {
+/// Uzakta çalışacak restart komutu. Root mu karar uzakta, çalışma anında verilir:
+/// root ise doğrudan, değilse `sudo -n` (parola istemez, gerekiyorsa hata verir).
+/// Ad, parser'daki izin listesiyle doğrulanır; betik tek tırnak içindedir.
+// VARSAYIM: `sh` ve `id` her hedefte vardır; kullanıcının giriş kabuğu ne olursa olsun `sh -c` çalışır.
+pub fn restart_command(service: &str) -> Result<String, String> {
     if !valid_service_name(service) {
         return Err(format!("geçersiz servis adı: {service:?}"));
     }
-    let sudo = if user == "root" { "" } else { "sudo -n " };
-    Ok(format!("{sudo}systemctl restart -- {service}"))
+    Ok(format!(
+        "sh -c 'if [ \"$(id -u)\" = 0 ]; then exec systemctl restart -- {service}; \
+         else exec sudo -n systemctl restart -- {service}; fi'"
+    ))
 }
 
 /// Çıkış kodu ve stderr'den kullanıcıya gösterilecek tek satırlık sonuç.
@@ -121,7 +124,7 @@ fn describe(service: &str, out: &ExecOutput) -> Result<String, String> {
 
 async fn restart(server: &ServerConfig, service: &str) -> Result<String, String> {
     let target = ssh::resolve(server).map_err(|e| e.to_string())?;
-    let cmd = restart_command(&target.user, service)?;
+    let cmd = restart_command(service)?;
     let session = ssh::connect(&target)
         .await
         .map_err(|e| format!("bağlanılamadı: {e}"))?;
@@ -135,17 +138,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn komut_root_ve_sudo_n() {
+    fn komut_calisma_aninda_root_kontrol_eder() {
+        let c = restart_command("nginx").unwrap();
         assert_eq!(
-            restart_command("root", "nginx").unwrap(),
-            "systemctl restart -- nginx"
+            c,
+            "sh -c 'if [ \"$(id -u)\" = 0 ]; then exec systemctl restart -- nginx; \
+             else exec sudo -n systemctl restart -- nginx; fi'"
         );
-        assert_eq!(
-            restart_command("deploy", "nginx").unwrap(),
-            "sudo -n systemctl restart -- nginx"
-        );
+        // Betik tek tırnak içinde; içinde başka tek tırnak olmamalı.
+        assert_eq!(c.matches('\'').count(), 2);
         for bad in ["", "-x", "a b", "a;b", "$(x)", "a'b"] {
-            assert!(restart_command("root", bad).is_err(), "{bad}");
+            assert!(restart_command(bad).is_err(), "{bad}");
         }
     }
 

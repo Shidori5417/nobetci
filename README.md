@@ -33,7 +33,7 @@ Bir servis çöktüğünde, disk dolmak üzereyken ya da sunucu erişilemez oldu
 | 🔌 **Agent'sız** | Sadece SSH. Var olan `~/.ssh/config` girdilerini okur. |
 | 📊 **Canlı metrikler** | CPU (çekirdek bazında), RAM, swap, load, disk, ağ trafiği ve sparkline geçmişi |
 | ⚙️ **Servis takibi** | İzlemek istediğin systemd servisleri, tek tuşla restart (onaylı) |
-| 📜 **Log görüntüleyici** | Canlı `journalctl -f`, filtre ve arama |
+| 📜 **Log görüntüleyici** | Canlı `journalctl -f`, arama (`n`/`N`, vurgulu) ve süzme (`f`) |
 | 🚨 **Uyarılar** | Eşik kuralları (ör. `disk > 90%` 5 dk boyunca), servis düştü, sunucu erişilemez |
 | 🔔 **Bildirimler** | Discord webhook ve Telegram bot, ikisi birlikte de kullanılabilir |
 | 🌙 **Daemon modu** | TUI olmadan arka planda izleme ve bildirim, systemd unit dosyası dahil |
@@ -109,7 +109,9 @@ servers = ["vds-1"]
 | `s` | Detayda servis listesine odaklan |
 | `r` | Seçili servisi yeniden başlat (onay ister, `allow_actions = true` gerekir) |
 | `l` | Loglar (seçili servis ya da tüm günlük) |
-| `/` | Log filtresi (`Enter` uygula, `Esc` temizle) |
+| `/` | Log araması: eşleşmeler vurgulanır (`Enter` uygula, `Esc` temizle) |
+| `n` / `N` | Sonraki / önceki eşleşme (uçlarda sarar, takipten çıkar) |
+| `f` | Yalnızca eşleşen satırları göster / tümünü göster |
 | `g` / `G` | Log başı / sonu (`G` canlı takibe döner) |
 | `PgUp` / `PgDn` | Log sayfa kaydır |
 | `?` | Yardım |
