@@ -7,6 +7,11 @@ sürümleme [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar
 
 ## [Unreleased]
 
+### Değişti
+
+- Config dosyası yokken `nobetci init` / `nobetci --demo` öneren sade bir mesaj gösterilir.
+- Hatalar kaynak konumu ve backtrace notu olmadan `Hata: ...` olarak yazılır; tam rapor için `RUST_BACKTRACE=1`.
+
 ## [0.1.0] - 2026-11-12
 
 ### Eklendi

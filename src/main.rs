@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+use std::process::ExitCode;
+
 use color_eyre::eyre::{Result, bail, eyre};
 use nobetci::actions::Actions;
 use nobetci::config::{self, Config};
@@ -98,16 +100,41 @@ fn init_config(path: PathBuf, force: bool) -> Result<()> {
 }
 
 fn load_config(cli: &Cli) -> Result<Config> {
-    Config::load(&config_path(cli)?)
-        .map_err(|e| eyre!("{e}\nİpucu: `nobetci init` ile config oluşturun"))
+    let path = config_path(cli)?;
+    if !path.exists() {
+        bail!(
+            "config bulunamadı: {}\n\
+             Oluşturmak için: nobetci init   (denemek için: nobetci --demo)",
+            path.display()
+        );
+    }
+    Ok(Config::load(&path)?)
 }
 
-fn main() -> Result<()> {
+fn main() -> ExitCode {
     // Panic hook'u ratatui::init'ten önce kurulmalı; ratatui bunu zincirler.
-    color_eyre::install()?;
+    if let Err(e) = color_eyre::install() {
+        eprintln!("Hata: {e}");
+    }
     // Yerel saat farkı, iş parçacığı açılmadan önce okunmalı.
     timefmt::init_local_offset();
-    tokio::runtime::Runtime::new()?.block_on(run())
+    let result = tokio::runtime::Runtime::new()
+        .map_err(Into::into)
+        .and_then(|rt| rt.block_on(run()));
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            // Kullanıcı hataları için kaynak konumu/backtrace gürültüsü gösterme;
+            // ayrıntı isteyen RUST_BACKTRACE ile tam raporu alır.
+            if std::env::var_os("RUST_BACKTRACE").is_some() {
+                eprintln!("{e:?}");
+            } else {
+                // Hata mesajlarımız sebebi zaten içeriyor; zinciri ayrıca basmıyoruz.
+                eprintln!("Hata: {e}");
+            }
+            ExitCode::FAILURE
+        }
+    }
 }
 
 async fn run() -> Result<()> {
