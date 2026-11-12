@@ -13,7 +13,7 @@ pub mod net;
 pub mod service;
 pub mod uptime;
 
-pub use batch::{ParsedBatch, build_command, parse_batch, split_sections};
+pub use batch::{ParsedBatch, build_command, parse_batch, split_sections, valid_service_name};
 
 /// Parser hataları.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]

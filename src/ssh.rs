@@ -25,6 +25,8 @@ use crate::config::ServerConfig;
 pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 /// Tek bir exec için süre sınırı.
 pub const EXEC_TIMEOUT: Duration = Duration::from_secs(10);
+/// Yazma işlemi (servis restart) için süre sınırı; systemctl restart yavaş olabilir.
+pub const ACTION_TIMEOUT: Duration = Duration::from_secs(30);
 /// Sunucu çıktısı güvenilmezdir; bundan fazlası hata sayılır.
 pub const MAX_OUTPUT: usize = 1 << 20;
 
@@ -292,7 +294,58 @@ async fn authenticate(handle: &mut Handle<Client>, t: &Target) -> Result<(), Ssh
     Err(SshError::Auth(tried.join("; ")))
 }
 
+/// Çalışmış bir komutun sonucu.
+#[derive(Debug, Clone, Default)]
+pub struct ExecOutput {
+    pub stdout: String,
+    pub stderr: String,
+    /// Uzak çıkış kodu; sinyalle ölmüşse `None`.
+    pub status: Option<u32>,
+}
+
 impl Session {
+    /// Komutu çalıştırıp stdout, stderr ve çıkış kodunu döner (`ACTION_TIMEOUT` sınırlı).
+    pub async fn run(&self, cmd: &str) -> Result<ExecOutput, SshError> {
+        tokio::time::timeout(ACTION_TIMEOUT, self.run_inner(cmd))
+            .await
+            .map_err(|_| other("komut zaman aşımı"))?
+    }
+
+    async fn run_inner(&self, cmd: &str) -> Result<ExecOutput, SshError> {
+        let mut ch = self.open_exec(cmd).await?;
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut res = ExecOutput::default();
+        while let Some(msg) = ch.wait().await {
+            match msg {
+                ChannelMsg::Data { data } if out.len() < MAX_OUTPUT => out.extend_from_slice(&data),
+                ChannelMsg::ExtendedData { data, .. } if err.len() < MAX_OUTPUT => {
+                    err.extend_from_slice(&data);
+                }
+                ChannelMsg::ExitStatus { exit_status } => res.status = Some(exit_status),
+                ChannelMsg::Close => break,
+                _ => {}
+            }
+        }
+        res.stdout = String::from_utf8_lossy(&out).into_owned();
+        res.stderr = String::from_utf8_lossy(&err).into_owned();
+        Ok(res)
+    }
+
+    /// Yeni kanal açıp komutu başlatır; çıktıyı çağıran okur (akış için).
+    pub async fn open_exec(&self, cmd: &str) -> Result<russh::Channel<client::Msg>, SshError> {
+        let ch = self.handle.channel_open_session().await.map_err(other)?;
+        ch.exec(true, cmd).await.map_err(other)?;
+        Ok(ch)
+    }
+
+    /// Oturumu nazikçe kapatır (hata yok sayılır).
+    pub async fn disconnect(&self) {
+        let _ = self
+            .handle
+            .disconnect(russh::Disconnect::ByApplication, "", "en")
+            .await;
+    }
+
     /// Komutu çalıştırıp stdout'u döner. Süre ve boyut sınırlıdır.
     pub async fn exec(&self, cmd: &str) -> Result<String, SshError> {
         tokio::time::timeout(EXEC_TIMEOUT, self.exec_inner(cmd))

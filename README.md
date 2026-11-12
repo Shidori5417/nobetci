@@ -103,12 +103,15 @@ servers = ["vds-1"]
 
 | Tuş | İşlev |
 |---|---|
-| `↑ ↓` / `j k` | Sunucu seç |
+| `↑ ↓` / `j k` | Sunucu seç (servis ve log listesinde gezinme) |
 | `Enter` | Detay görünümü |
-| `l` | Loglar |
-| `s` | Servisler |
-| `r` | Servisi yeniden başlat (onay ister) |
-| `/` | Ara veya filtrele |
+| `Esc` | Geri / kapat |
+| `s` | Detayda servis listesine odaklan |
+| `r` | Seçili servisi yeniden başlat (onay ister, `allow_actions = true` gerekir) |
+| `l` | Loglar (seçili servis ya da tüm günlük) |
+| `/` | Log filtresi (`Enter` uygula, `Esc` temizle) |
+| `g` / `G` | Log başı / sonu (`G` canlı takibe döner) |
+| `PgUp` / `PgDn` | Log sayfa kaydır |
 | `?` | Yardım |
 | `q` | Çıkış |
 

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use color_eyre::eyre::{Result, bail, eyre};
+use nobetci::actions::Actions;
 use nobetci::config::{self, Config};
 use nobetci::{collector, demo, ui};
 
@@ -103,12 +104,13 @@ async fn main() -> Result<()> {
 
     let _guard = init_logging();
 
-    let data = if cli.demo {
-        demo::spawn()
+    let (data, actions) = if cli.demo {
+        (demo::spawn(), Actions::new(demo::server_configs(), true))
     } else {
         let cfg = load_config(&cli)?;
-        collector::spawn(&cfg.servers, cfg.interval())
+        let data = collector::spawn(&cfg.servers, cfg.interval());
+        (data, Actions::new(cfg.servers, false))
     };
     tracing::info!("TUI başlıyor (demo={})", cli.demo);
-    ui::run(data).await
+    ui::run(data, actions.0, actions.1).await
 }

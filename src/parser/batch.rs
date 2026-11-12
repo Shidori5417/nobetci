@@ -13,7 +13,7 @@ const MARKER_PREFIX: &str = "@@NOBETCI:";
 const MARKER_SUFFIX: &str = "@@";
 
 /// Servis adı güvenli mi? `[A-Za-z0-9@._:-]+`, tire ile başlayamaz (seçenek sanılmasın).
-fn valid_service_name(name: &str) -> bool {
+pub fn valid_service_name(name: &str) -> bool {
     !name.is_empty()
         && !name.starts_with('-')
         && name

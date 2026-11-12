@@ -189,13 +189,15 @@ pub fn draw(f: &mut Frame, app: &App, table_state: &mut TableState) {
 }
 
 const HELP: &[(&str, &str)] = &[
-    ("↑ ↓ / j k", "Sunucu seç"),
+    ("↑ ↓ / j k", "Sunucu seç (servis/log listesinde gez)"),
     ("Enter", "Sunucu detayı"),
-    ("Esc", "Detaydan genel bakışa dön"),
-    ("l", "Loglar"),
-    ("s", "Servisler"),
-    ("r", "Servisi yeniden başlat (onay ister)"),
-    ("/", "Ara veya filtrele"),
+    ("Esc", "Geri / kapat"),
+    ("s", "Detayda servis listesine odaklan"),
+    ("r", "Seçili servisi yeniden başlat (onay ister)"),
+    ("l", "Loglar (seçili servis ya da tüm günlük)"),
+    ("/", "Log filtresi (Enter uygula, Esc temizle)"),
+    ("g / G", "Log başı / sonu (G: canlı takip)"),
+    ("PgUp PgDn", "Log sayfa kaydır"),
     ("?", "Yardım"),
     ("q", "Çıkış"),
 ];
@@ -210,7 +212,7 @@ pub(super) fn draw_help(f: &mut Frame) {
             ])
         })
         .collect();
-    let area = centered(f.area(), 52, lines.len() as u16 + 2);
+    let area = centered(f.area(), 60, lines.len() as u16 + 2);
     f.render_widget(Clear, area);
     f.render_widget(
         Paragraph::new(lines).block(Block::bordered().title(" Kısayollar ")),

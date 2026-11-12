@@ -7,10 +7,12 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Sparkline, Table};
+use ratatui::widgets::{
+    Block, Borders, Cell, Clear, Paragraph, Row, Sparkline, Table, TableState, Wrap,
+};
 
-use super::App;
-use super::overview::{draw_help, format_uptime, gauge, health, health_icon};
+use super::overview::{centered, draw_help, format_uptime, gauge, health, health_icon};
+use super::{App, Confirm, Level};
 use crate::model::{DiskUsage, ServiceStatus};
 use crate::state::ServerState;
 
@@ -88,16 +90,47 @@ pub fn draw(f: &mut Frame, app: &App) {
     draw_cores(f, cores, st);
     draw_sparklines(f, spark, st);
     draw_disks(f, disks, st);
-    draw_services(f, services, st);
+    draw_services(f, services, app);
 
-    f.render_widget(
-        Paragraph::new(" Esc: geri   j/k: sunucu değiştir   ?: yardım   q: çıkış")
-            .style(Style::new().fg(Color::DarkGray)),
-        footer,
-    );
+    let footer_line = match &app.status {
+        Some((level, text)) => {
+            let color = match level {
+                Level::Info => Color::Yellow,
+                Level::Ok => Color::Green,
+                Level::Err => Color::Red,
+            };
+            Paragraph::new(format!(" {text}")).style(Style::new().fg(color))
+        }
+        None => Paragraph::new(
+            " Esc: geri   s: servisler   l: log   j/k: sunucu değiştir   ?: yardım   q: çıkış",
+        )
+        .style(Style::new().fg(Color::DarkGray)),
+    };
+    f.render_widget(footer_line, footer);
+    if let Some(c) = &app.confirm {
+        draw_confirm(f, c);
+    }
     if app.show_help {
         draw_help(f);
     }
+}
+
+/// Restart onayı: varsayılan hayır.
+fn draw_confirm(f: &mut Frame, c: &Confirm) {
+    let text = format!(
+        "{} servisi {} üzerinde yeniden başlatılsın mı? [e/H]",
+        c.service, c.server_name
+    );
+    let area = centered(f.area(), 64, 5);
+    f.render_widget(Clear, area);
+    f.render_widget(
+        Paragraph::new(text).wrap(Wrap { trim: true }).block(
+            Block::bordered()
+                .title(" Onay ")
+                .border_style(Style::new().fg(Color::Yellow)),
+        ),
+        area,
+    );
 }
 
 fn draw_header(f: &mut Frame, area: Rect, st: &ServerState) {
@@ -270,8 +303,17 @@ fn draw_disks(f: &mut Frame, area: Rect, st: &ServerState) {
     f.render_widget(table, area);
 }
 
-fn draw_services(f: &mut Frame, area: Rect, st: &ServerState) {
-    let block = Block::bordered().title(" Servisler ");
+fn draw_services(f: &mut Frame, area: Rect, app: &App) {
+    let Some(st) = app.states.get(app.selected) else {
+        return;
+    };
+    let block = if app.focus_services {
+        Block::bordered()
+            .title(" Servisler (j/k: seç, r: yeniden başlat, l: log, Esc: çık) ")
+            .border_style(Style::new().fg(Color::Cyan))
+    } else {
+        Block::bordered().title(" Servisler (s: seç) ")
+    };
     if st.latest.services.is_empty() {
         f.render_widget(
             Paragraph::new("izlenen servis yok")
@@ -290,8 +332,13 @@ fn draw_services(f: &mut Frame, area: Rect, st: &ServerState) {
     });
     let table = Table::new(rows, [Constraint::Min(8), Constraint::Length(18)])
         .header(Row::new(["Ad", "Durum"]).style(Style::new().add_modifier(Modifier::BOLD)))
+        .row_highlight_style(Style::new().add_modifier(Modifier::REVERSED))
         .block(block);
-    f.render_widget(table, area);
+    let mut ts = TableState::default();
+    if app.focus_services {
+        ts.select(Some(app.svc_sel.min(st.latest.services.len() - 1)));
+    }
+    f.render_stateful_widget(table, area, &mut ts);
 }
 
 #[cfg(test)]
@@ -299,6 +346,10 @@ mod tests {
     use super::*;
     use crate::demo;
     use ratatui::{Terminal, backend::TestBackend};
+
+    fn test_actions() -> crate::actions::Actions {
+        crate::actions::Actions::new(demo::server_configs(), true).0
+    }
 
     #[test]
     fn boyut_bicimi() {
@@ -331,7 +382,7 @@ mod tests {
         if let Some(c) = &mut snap.cpu {
             c.cores = (0..n).map(|i| (i % 101) as f64).collect();
         }
-        App::new(vec![snap])
+        App::new(vec![snap], test_actions())
     }
 
     fn screen(term: &Terminal<TestBackend>) -> String {
@@ -382,7 +433,7 @@ mod tests {
     /// Her boyutta, her sunucu için (erişilemez dahil) panic olmadan çizilmeli.
     #[test]
     fn kucuk_ve_buyuk_boyutta_panic_olmaz() {
-        let mut app = App::new(demo::snapshots(0));
+        let mut app = App::new(demo::snapshots(0), test_actions());
         for t in 1..5 {
             app.set_servers(&demo::snapshots(t));
         }
@@ -400,6 +451,12 @@ mod tests {
             for sel in 0..4 {
                 app.selected = sel;
                 app.show_help = sel == 1;
+                app.confirm = (sel == 0).then(|| Confirm {
+                    server: 0,
+                    server_name: "vds-1".into(),
+                    service: "nginx".into(),
+                });
+                app.focus_services = sel == 0;
                 term.draw(|f| draw(f, &app)).unwrap();
             }
         }

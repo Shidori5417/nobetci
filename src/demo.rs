@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use tokio::sync::watch;
 
+use crate::config::ServerConfig;
 use crate::model::{CpuUsage, DiskUsage, LoadAvg, MemInfo, ServerSnapshot, ServiceStatus};
 
 const GIB: u64 = 1 << 30;
@@ -101,6 +102,25 @@ pub fn snapshots(tick: u64) -> Vec<ServerSnapshot> {
         s.seq = tick + 1;
     }
     all
+}
+
+/// `snapshots` ile aynı sırada sahte sunucu config'leri. İşlem iznini göstermek için
+/// yalnızca ilk sunucuda `allow_actions = true`.
+pub fn server_configs() -> Vec<ServerConfig> {
+    ["vds-1", "db-1", "yedek", "eski-vds"]
+        .iter()
+        .enumerate()
+        .map(|(i, name)| ServerConfig {
+            name: (*name).into(),
+            ssh_host: None,
+            host: Some("203.0.113.1".into()),
+            user: Some("demo".into()),
+            port: None,
+            key: None,
+            services: vec![],
+            allow_actions: i == 0,
+        })
+        .collect()
 }
 
 /// Her saniye yeni veri gönderen arka plan görevi. UI yalnızca son değeri okur.
