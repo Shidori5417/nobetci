@@ -7,23 +7,29 @@ sürümleme [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-12
+
 ### Eklendi
 
-- Proje iskeleti (Cargo projesi, modül yapısı, temel bağımlılıklar).
-- CLI: `nobetci` (TUI), `nobetci init`, `nobetci check` ve `nobetci daemon` alt komutları.
-- Config okuma: `~/.config/nobetci/config.toml` dosyasının okunması ve doğrulanması.
-- `--demo` modu: gerçek sunucu olmadan sahte veriyle TUI'yi çalıştırma.
-- Genel bakış ekranı: sunucu kartları, CPU/RAM/disk gauge'ları, load, uptime ve düşen servis sayısı.
-- `/proc` parser'ları (`/proc/stat`, `/proc/meminfo`, `/proc/loadavg`, `/proc/net/dev`, `/proc/uptime`) ve bunların birim testleri.
-- Detay ekranı: çekirdek çubukları alana göre çok sütunlu ızgarada gösterilir; sığmayanlar için "+N çekirdek" göstergesi.
-- Servis takibi: detay ekranında `s` ile servis listesine odaklanma ve `j`/`k` ile gezinme.
-- Onaylı servis yeniden başlatma (`r`): yalnızca `allow_actions = true` olan sunucularda; root değilse `sudo -n systemctl restart`, parola istemez; sonuç durum satırında gösterilir.
-- Canlı log görüntüleyici (`l`): `journalctl -f` akışı, sınırlı tampon (5000 satır), takip modu, kaydırma, büyük/küçük harf duyarsız süzme; sunucu çıktısındaki ANSI/kontrol karakterleri temizlenir; kapatınca uzak `journalctl` durdurulur.
-- Log araması: `/` arama (eşleşmeler vurgulanır, Türkçe/çok baytlı metinde güvenli), `n`/`N` ile eşleşmeler arasında gezinme (uçlarda sarar, takipten çıkar), `f` ile yalnızca eşleşenleri gösterme.
-- Restart: root kontrolü SSH kullanıcı adına göre değil, uzakta çalışma anında (`id -u`) yapılır.
-- `--demo`: sahte log akışı ve sahte restart (yalnızca `vds-1` için işlemler açık).
-- Alert motoru (`for` süreli eşik, `service_down`, `unreachable` kuralları; tek ateşleme, tek çözüldü olayı) ve Discord/Telegram bildirimcileri (retry, rate limit, token gizleme).
-- `nobetci daemon`: TUI'siz izleme; uyarı olaylarını Discord/Telegram'a gönderir, SIGINT/SIGTERM ile temiz kapanır, loglar stderr'e (journald) gider. `--demo` ile de çalışır (bildirimsiz).
-- TUI Uyarılar ekranı (`a`): aktif uyarılar ve geçmiş; genel bakışta aktif uyarı sayısı ve uyarısı olan sunucularda işaret.
-- `--demo`: bir uyarı ~5. sn'de ateşlenir, biri ~25. sn'de çözülür (ekran görüntüleri için).
-- `nobetci check`: uyarı kuralı sayısı ve bildirici adları (sır yok); `--test-notify` ile her bildiriciye test mesajı.
+- CLI: `nobetci` (TUI), `nobetci init [--force]`, `nobetci check [--test-notify]` ve `nobetci daemon` alt komutları; `--config` ve `--demo` genel bayrakları.
+- TOML config (`~/.config/nobetci/config.toml`): `interval`, `[[server]]` (`ssh_host` veya `host`/`user`/`port`/`key`, `services`, `allow_actions`), `[notify.*]` ve `[[alert]]` blokları; doğrulama ve örnek `config.example.toml`.
+- Agent'sız SSH toplama (saf Rust, `russh`): tek oturumda `/proc/stat`, `/proc/meminfo`, `/proc/loadavg`, `/proc/net/dev`, `/proc/uptime`, `df` ve `systemctl show` çıktısı; üstel geri çekilmeyle yeniden bağlanma; `~/.ssh/config` desteği; anahtar dosyası ve `ssh-agent` ile kimlik doğrulama. Parser katmanı birim testlerle kapsanır.
+- Genel bakış ekranı: sunucu kartları, CPU/RAM/disk göstergeleri, load, uptime, düşen servis ve aktif uyarı sayısı.
+- Detay ekranı: çekirdek bazında CPU, RAM, swap, disk, ağ trafiği, sparkline geçmişi ve servis listesi (`s` ile odaklanma).
+- Onaylı servis yeniden başlatma (`r`): yalnızca `allow_actions = true` sunucularda; uzak kullanıcı root değilse `sudo -n systemctl restart` (parola istemez), root kontrolü uzakta `id -u` ile yapılır.
+- Canlı log görüntüleyici (`l`): `journalctl -f`, sınırlı tampon, takip modu, kaydırma, arama (`/`, `n`/`N`, vurgu) ve yalnızca eşleşenleri gösterme (`f`).
+- Uyarı motoru: `cpu`, `mem`, `disk_usage`, `swap`, `load` karşılaştırmaları (`>`, `>=`, `<`, `<=`), `service_down`, `unreachable`, `for` süre koşulu; tek ateşleme ve tek "çözüldü" olayı.
+- Discord (webhook) ve Telegram bildirimcileri; yeniden deneme ve hız sınırı.
+- `nobetci daemon`: TUI'siz izleme ve bildirim, SIGINT/SIGTERM ile temiz kapanış, loglar stderr'e (journald); `contrib/nobetci.service` systemd kullanıcı birimi.
+- TUI Uyarılar ekranı (`a`): aktif uyarılar ve geçmiş. TUI bildirim göndermez, bildirimi yalnızca daemon gönderir.
+- `--demo` modu: sahte metrikler, log akışı, restart ve uyarılar (gerçek sunucu gerekmez).
+- GitHub Actions: fmt, clippy ve test iş akışı; `v*` etiketinde Linux x86_64 ve aarch64 release paketleri (sha256 ile).
+- `assets/demo.tape` ile vhs üzerinden README GIF'i üretimi.
+
+### Güvenlik
+
+- Host anahtarı `~/.ssh/known_hosts` ile doğrulanır; bilinmeyen veya değişmiş anahtar reddedilir. `known_hosts`'a yazma yalnızca `nobetci check` içindeki açık onaydan sonra yapılır.
+- SSH parolası desteklenmez.
+- Yazma işlemleri (restart) varsayılan olarak kapalıdır ve her seferinde onay ister.
+- Webhook URL'si ve bot token'ı `Debug` ve loglarda `***` olarak gizlenir; `nobetci check` sır göstermez.
+- Sunucudan gelen log satırlarındaki ANSI/kontrol karakterleri temizlenir.
