@@ -1,0 +1,3 @@
+MemTotal: lots kB
+MemFree
+???

@@ -1,0 +1,12 @@
+Dosya_sistemi  Türü  1024-blok  Kullanılan  Boş  Kapasite  Bağlanma_noktası
+/dev/mapper/root         btrfs     495793983488 187654422528 306122563584      38% /
+devtmpfs                 devtmpfs    8231690240            0   8231690240       0% /dev
+tmpfs                    tmpfs       8293904384       116224   8293788160       1% /dev/shm
+efivarfs                 efivarfs        262144        25600       236544      10% /sys/firmware/efi/efivars
+tmpfs                    tmpfs       3317563392      2265088   3315298304       1% /run
+/dev/mapper/root         btrfs     495793983488 187654422528 306122563584      38% /srv
+/dev/mapper/root         btrfs     495793983488 187654422528 306122563584      38% /home
+/dev/mapper/root         btrfs     495793983488 187654422528 306122563584      38% /var/log
+/dev/nvme0n1p1           vfat         536870912    186744832    350126080      35% /boot
+fuse-overlayfs           fuse.fuse-overlayfs  1658777600   1658777600          0     100% /run/user/1000/psd/x
+T3-Code-0.1.9-x86_64.AppImage fuse.T3-Code-0.1.9-x86_64.AppImage 104857600 104857600 0 100% /tmp/.mount_T3-CodhfEmCc

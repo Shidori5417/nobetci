@@ -1,0 +1,10 @@
+Filesystem     Type         1-blocks        Used   Available Capacity Mounted on
+udev           devtmpfs   8200003584           0  8200003584       0% /dev
+tmpfs          tmpfs      1647640576     1519616  1646120960       1% /run
+/dev/sda1      ext4      52576092160 21030436864 28829163520      43% /
+tmpfs          tmpfs      8238202880           0  8238202880       0% /dev/shm
+tmpfs          tmpfs         5242880           0     5242880       0% /run/lock
+/dev/sda15     vfat        109395456     6224384   103171072       6% /boot/efi
+/dev/loop0     squashfs     67108864    67108864           0     100% /snap/core20/1828
+overlay        overlay   52576092160 21030436864 28829163520      43% /var/lib/docker/overlay2/abc/merged
+/dev/sdb1      ext4     500107862016 120026726400 380081135616      24% /mnt/yedek diski

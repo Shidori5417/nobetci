@@ -1,0 +1,35 @@
+[package]
+name = "nobetci"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Agentless multi-server Linux monitoring TUI over SSH"
+license = "MIT"
+readme = "README.md"
+keywords = ["monitoring", "tui", "ssh", "server", "systemd"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "nobetci"
+path = "src/main.rs"
+
+[lib]
+name = "nobetci"
+path = "src/lib.rs"
+
+[dependencies]
+clap = { version = "4.6", features = ["derive"] }
+color-eyre = "0.6"
+crossterm = { version = "0.29", features = ["event-stream"] }
+futures-util = "0.3"
+directories = "6"
+ratatui = "0.30"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+toml = "1"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+russh = "0.65"
+russh-config = "0.58"

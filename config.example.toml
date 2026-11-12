@@ -1,0 +1,52 @@
+# Nöbetçi örnek yapılandırma dosyası.
+#
+# Kullanım: Bu dosyayı ~/.config/nobetci/config.toml konumuna kopyalayıp
+# değerleri kendi sunucularına göre düzenle.
+#
+# Buradaki sır değerleri (webhook, bot token, chat_id) yer tutucudur.
+# Gerçek değerlerini yalnızca kendi config dosyana yaz, bu dosyaya değil.
+
+# Örnekleme aralığı (isteğe bağlı, varsayılan 2s, en az 1s).
+# interval = "2s"
+
+# Her [[server]] bloğu izlenecek bir sunucudur.
+[[server]]
+name = "vds-1"                 # Arayüzde ve bildirimlerde görünen ad
+ssh_host = "vds1"              # ~/.ssh/config içindeki Host adı
+services = ["nginx", "minecraft", "postgresql"]  # İzlenecek systemd servisleri
+# Servis yeniden başlatma gibi yazma işlemleri varsayılan olarak kapalıdır.
+# true yaparsan 'r' tuşuyla restart açılır (her işlemde onay istenir).
+allow_actions = false
+
+[[server]]
+name = "yedek"                 # Sunucunun görünen adı
+host = "203.0.113.10"          # Sunucunun IP adresi veya alan adı (ssh_host yerine)
+user = "root"                  # SSH kullanıcı adı
+port = 22                      # SSH portu
+key = "~/.ssh/id_ed25519"      # Özel anahtar dosyası (şifre desteklenmez)
+
+# Bildirim kanalları. İkisi birlikte de kullanılabilir.
+[notify.discord]
+webhook_url = "https://discord.com/api/webhooks/..."   # Discord kanal webhook adresi
+
+[notify.telegram]
+bot_token = "..."              # BotFather'dan alınan bot token'ı
+chat_id = "..."                # Bildirimin gideceği sohbet kimliği
+
+# Uyarı kuralları. Her [[alert]] bloğu bir kuraldır.
+[[alert]]
+# Koşul. Desteklenen koşullar:
+#   cpu > 85            CPU kullanımı yüzde 85'in üzerinde
+#   mem > 90            RAM kullanımı yüzde 90'ın üzerinde
+#   disk_usage > 90     Disk doluluğu yüzde 90'ın üzerinde
+#   service_down        İzlenen servislerden biri çalışmıyor
+#   unreachable         Sunucuya SSH ile ulaşılamıyor
+when = "disk_usage > 90"
+# Koşulun bu süre boyunca sürmesi gerekir. "30s", "5m", "1h" gibi değerler kabul edilir.
+for = "5m"
+# Kuralın uygulanacağı sunucular. "*" tüm sunucular anlamına gelir.
+servers = ["*"]
+
+[[alert]]
+when = "service_down"
+servers = ["vds-1"]

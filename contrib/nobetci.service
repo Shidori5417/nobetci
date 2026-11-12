@@ -1,0 +1,37 @@
+# Nöbetçi daemon'u kullanıcı servisi olarak çalıştırmak için systemd birimi.
+#
+# Kurulum (root gerekmez):
+#   cp contrib/nobetci.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now nobetci
+#
+# Önce binary'nin kurulu olduğundan emin ol: cargo install nobetci
+# Durumu ve logları görmek için:
+#   systemctl --user status nobetci
+#   journalctl --user -u nobetci -f
+#
+# Kullanıcı oturumu kapandığında da servisin çalışmaya devam etmesi için:
+#   loginctl enable-linger "$USER"
+
+[Unit]
+Description=Nöbetçi sunucu izleme daemon'u
+Documentation=https://github.com/KULLANICI/nobetci
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/nobetci daemon
+Restart=on-failure
+RestartSec=10
+
+# Sertleştirme. Nöbetçi yalnızca kendi config/durum dizinlerine yazar,
+# SSH anahtarlarını ve ~/.ssh'yi okumaya devam eder.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# Dizinler henüz yoksa birim başarısız olmasın diye "-" öneki kullanılır.
+ReadWritePaths=-%h/.config/nobetci -%h/.local/state/nobetci -%h/.local/share/nobetci
+
+[Install]
+WantedBy=default.target

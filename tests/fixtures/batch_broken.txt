@@ -1,0 +1,35 @@
+@@NOBETCI:stat@@
+cpu  5320153 123690 2144719 53638182 16683 0 25195 0 0 0
+cpu0 1393280 32966 572056 13343292 6130 0 17875 0 0 0
+cpu1 1335246 29234 540112 13401877 5502 0 3120 0 0 0
+cpu2 1290511 31010 512987 13455002 2987 0 2210 0 0 0
+cpu3 1301116 30480 519564 13438011 2064 0 1990 0 0 0
+intr 1263451220 0 9 0 0 0 0 0 0 1 0 0 0 0 0 0
+ctxt 2489104117
+btime 1767225600
+processes 1203311
+procs_running 2
+procs_blocked 0
+softirq 1043817222 5 120113977 14 2209182 0 0 91 333444 0 587000000
+@@NOBETCI:meminfo@@
+MemTotal: lots kB
+MemFree
+???
+@@NOBETCI:loadavg@@
+0.42 0.37 0.30 2/412 1893054
+@@NOBETCI:df@@
+Filesystem Type 1-blocks Used
+/dev/sda1 ext4 12
+^A^Bgarbage
+@@NOBETCI:netdev@@
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 8841234   61234    0    0    0     0          0         0  8841234   61234    0    0    0     0       0          0
+  eth0: 9876543210 7654321    0    0    0     0          0         0 1234567890 5432100    0    0    0     0       0          0
+docker0: 1048576    1024    0    0    0     0          0         0   524288     512    0    0    0     0       0          0
+   wg0:12345678   9000    0    0    0     0          0         0  87654321   8000    0    0    0     0       0          0
+@@NOBETCI:services@@
+Id=nginx.service
+ActiveState=active
+SubState=running
+@@NOBETCI:end@@

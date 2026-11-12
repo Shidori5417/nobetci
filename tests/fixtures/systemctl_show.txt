@@ -1,0 +1,15 @@
+Id=nginx.service
+LoadState=loaded
+ActiveState=active
+SubState=running
+
+Id=ssh.service
+LoadState=loaded
+ActiveState=failed
+SubState=failed
+
+Id=missing.service
+LoadState=not-found
+ActiveState=inactive
+SubState=dead
+

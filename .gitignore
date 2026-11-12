@@ -1,0 +1,6 @@
+/target
+*.log
+.env
+
+# Yerel yapılandırma (örnek dosya config.example.toml ile sürümlenir)
+/config.toml

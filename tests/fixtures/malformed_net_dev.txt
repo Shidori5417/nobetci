@@ -1,0 +1,4 @@
+Inter-|   Receive
+ face |bytes
+  eth0: 12 34
+notaline

@@ -1,0 +1,69 @@
+@@NOBETCI:stat@@
+cpu  5320153 123690 2144719 53638182 16683 0 25195 0 0 0
+cpu0 1393280 32966 572056 13343292 6130 0 17875 0 0 0
+cpu1 1335246 29234 540112 13401877 5502 0 3120 0 0 0
+cpu2 1290511 31010 512987 13455002 2987 0 2210 0 0 0
+cpu3 1301116 30480 519564 13438011 2064 0 1990 0 0 0
+intr 1263451220 0 9 0 0 0 0 0 0 1 0 0 0 0 0 0
+ctxt 2489104117
+btime 1767225600
+processes 1203311
+procs_running 2
+procs_blocked 0
+softirq 1043817222 5 120113977 14 2209182 0 0 91 333444 0 587000000
+@@NOBETCI:meminfo@@
+MemTotal:       16315288 kB
+MemFree:         2113456 kB
+MemAvailable:   11876544 kB
+Buffers:          412880 kB
+Cached:          8901232 kB
+SwapCached:         1024 kB
+Active:          4120044 kB
+Inactive:        7733120 kB
+SwapTotal:       8388604 kB
+SwapFree:        8101372 kB
+Dirty:               412 kB
+Shmem:            611204 kB
+SReclaimable:     702100 kB
+HugePages_Total:       0
+HugePages_Free:        0
+Hugepagesize:       2048 kB
+@@NOBETCI:loadavg@@
+0.42 0.37 0.30 2/412 1893054
+@@NOBETCI:uptime@@
+1234567.89 4567890.12
+@@NOBETCI:df@@
+Filesystem     Type         1-blocks        Used   Available Capacity Mounted on
+udev           devtmpfs   8200003584           0  8200003584       0% /dev
+tmpfs          tmpfs      1647640576     1519616  1646120960       1% /run
+/dev/sda1      ext4      52576092160 21030436864 28829163520      43% /
+tmpfs          tmpfs      8238202880           0  8238202880       0% /dev/shm
+tmpfs          tmpfs         5242880           0     5242880       0% /run/lock
+/dev/sda15     vfat        109395456     6224384   103171072       6% /boot/efi
+/dev/loop0     squashfs     67108864    67108864           0     100% /snap/core20/1828
+overlay        overlay   52576092160 21030436864 28829163520      43% /var/lib/docker/overlay2/abc/merged
+/dev/sdb1      ext4     500107862016 120026726400 380081135616      24% /mnt/yedek diski
+@@NOBETCI:netdev@@
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 8841234   61234    0    0    0     0          0         0  8841234   61234    0    0    0     0       0          0
+  eth0: 9876543210 7654321    0    0    0     0          0         0 1234567890 5432100    0    0    0     0       0          0
+docker0: 1048576    1024    0    0    0     0          0         0   524288     512    0    0    0     0       0          0
+   wg0:12345678   9000    0    0    0     0          0         0  87654321   8000    0    0    0     0       0          0
+@@NOBETCI:services@@
+Id=nginx.service
+LoadState=loaded
+ActiveState=active
+SubState=running
+
+Id=ssh.service
+LoadState=loaded
+ActiveState=failed
+SubState=failed
+
+Id=missing.service
+LoadState=not-found
+ActiveState=inactive
+SubState=dead
+
+@@NOBETCI:end@@
