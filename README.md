@@ -6,7 +6,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/KULLANICI/nobetci/ci.yml?label=CI)](../../actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/Shidori5417/nobetci/ci.yml?label=CI)](https://github.com/Shidori5417/nobetci/actions/workflows/ci.yml)
 
 ![Nöbetçi demo](assets/demo.gif)
 
@@ -41,42 +41,48 @@ Bir servis çöktüğünde, disk dolmak üzereyken ya da sunucu erişilemez oldu
 
 ## Ekran görüntüleri
 
-| Genel bakış | Sunucu detayı | Loglar |
-|---|---|---|
-| ![](assets/overview.png) | ![](assets/detail.png) | ![](assets/logs.png) |
+| Genel bakış | Sunucu detayı | Loglar | Uyarılar |
+|---|---|---|---|
+| ![](assets/overview.png) | ![](assets/detail.png) | ![](assets/logs.png) | ![](assets/alerts.png) |
 
 ## Kurulum
 
 ```bash
-# crates.io
-cargo install nobetci
+# Kaynaktan (GitHub)
+cargo install --git https://github.com/Shidori5417/nobetci
 
-# veya kaynaktan
-git clone https://github.com/KULLANICI/nobetci
+# veya depoyu klonlayıp
+git clone https://github.com/Shidori5417/nobetci
 cd nobetci
-cargo build --release
+cargo build --release   # çıktı: target/release/nobetci
 ```
 
-Arch / CachyOS için AUR paketi planlanıyor: `nobetci-bin`.
+Sürüm etiketlerinde Linux x86_64 ve aarch64 için hazır derlenmiş paketler GitHub Releases sayfasına yüklenir. crates.io'ya yayınlandığında `cargo install nobetci` da çalışacaktır. Gereken en düşük Rust sürümü 1.85'tir (edition 2024).
 
 ## Hızlı başlangıç
 
 ```bash
-nobetci init      # örnek config dosyasını oluşturur
-nobetci           # TUI'yi açar
-nobetci daemon    # arka planda izler ve bildirim gönderir
-nobetci check --test-notify   # config'i, bağlantıları ve bildirim kanallarını dener
+nobetci init                  # örnek config dosyasını oluşturur (var olanı korur; --force ile üzerine yazar)
+nobetci                       # TUI'yi açar
+nobetci daemon                # TUI'siz izler ve bildirim gönderir
+nobetci check                 # config'i doğrular, sunuculara bağlanmayı dener
+nobetci check --test-notify   # ayrıca her bildirim kanalına test mesajı yollar
+nobetci --demo                # sahte veriyle dener, config ve sunucu gerekmez
+nobetci --config yol.toml     # varsayılan yerine başka bir config dosyası kullanır
 ```
 
-TUI de uyarı kurallarını çalıştırır (Uyarılar ekranı) ama bildirim göndermez; bildirimleri yalnızca `daemon` gönderir, böylece ikisi birlikte açıkken çift mesaj gitmez.
+`--demo` ve `--config` her alt komutla birlikte kullanılabilir. TUI de uyarı kurallarını çalıştırır (Uyarılar ekranı) ama bildirim göndermez; bildirimleri yalnızca `daemon` gönderir, böylece ikisi birlikte açıkken çift mesaj gitmez.
 
-Config dosyası `~/.config/nobetci/config.toml` konumundadır:
+Config dosyası varsayılan olarak `~/.config/nobetci/config.toml` konumundadır. Tüm anahtarların açıklamalı hali için [`config.example.toml`](config.example.toml) dosyasına bak.
 
 ```toml
+interval = "2s"              # örnekleme aralığı (isteğe bağlı, varsayılan 2s, en az 1s)
+
 [[server]]
 name = "vds-1"
 ssh_host = "vds1"            # ~/.ssh/config içindeki Host adı
 services = ["nginx", "minecraft", "postgresql"]
+allow_actions = false        # true: 'r' ile servis restart açılır (varsayılan kapalı)
 
 [[server]]
 name = "yedek"
@@ -94,13 +100,21 @@ chat_id = "..."
 
 [[alert]]
 when = "disk_usage > 90"
-for = "5m"
-servers = ["*"]
+for = "5m"                   # koşul bu süre sürerse ateşlenir (isteğe bağlı)
+servers = ["*"]              # "*" tüm sunucular
 
 [[alert]]
 when = "service_down"
 servers = ["vds-1"]
 ```
+
+Uyarı koşulları (`when`):
+
+- `cpu`, `mem`, `disk_usage`, `swap`, `load` metrikleri ile `>`, `>=`, `<`, `<=` karşılaştırması, örn. `cpu > 85`, `mem >= 90`
+- `service_down`: izlenen servislerden biri çalışmıyor
+- `unreachable`: sunucuya SSH ile ulaşılamıyor
+
+Aynı uyarı tekrar tekrar gönderilmez; sorun düzelince tek bir "çözüldü" bildirimi gider. `for` süresi `30s`, `5m`, `1h`, `2d` biçimindedir.
 
 ## Kısayollar
 
@@ -110,7 +124,7 @@ servers = ["vds-1"]
 | `Enter` | Detay görünümü |
 | `Esc` | Geri / kapat |
 | `s` | Detayda servis listesine odaklan |
-| `r` | Seçili servisi yeniden başlat (onay ister, `allow_actions = true` gerekir) |
+| `r` | Seçili servisi yeniden başlat (`allow_actions = true` gerekir; `e` onaylar, başka tuş vazgeçer) |
 | `a` | Uyarılar: aktif ve geçmiş (`j`/`k` kaydır, `Esc` geri) |
 | `l` | Loglar (seçili servis ya da tüm günlük) |
 | `/` | Log araması: eşleşmeler vurgulanır (`Enter` uygula, `Esc` temizle) |
@@ -119,13 +133,44 @@ servers = ["vds-1"]
 | `g` / `G` | Log başı / sonu (`G` canlı takibe döner) |
 | `PgUp` / `PgDn` | Log sayfa kaydır |
 | `?` | Yardım |
-| `q` | Çıkış |
+| `q` / `Ctrl+C` | Çıkış |
 
 ## Güvenlik
 
-- Şifreler config dosyasında tutulmaz. Kimlik doğrulama SSH anahtarı veya `ssh-agent` ile yapılır.
-- Bilinmeyen host anahtarları `known_hosts` dosyasıyla doğrulanır, sessizce kabul edilmez.
-- Servis yeniden başlatma gibi yazma işlemleri varsayılan olarak kapalıdır ve config'te `allow_actions = true` ile açılır.
+- SSH parolası desteklenmez. Kimlik doğrulama SSH anahtarı veya `ssh-agent` ile yapılır.
+- Host anahtarları `~/.ssh/known_hosts` ile doğrulanır. Bilinmeyen host reddedilir; TUI ve daemon `known_hosts`'a asla yazmaz. Yeni bir sunucuyu kabul etmek için `nobetci check` çalıştır: parmak izini gösterir ve onay isterse (`e`) host'u ekler. Anahtarı değişmiş bir host, olası ortadaki adam saldırısı uyarısıyla reddedilir.
+- Servis yeniden başlatma varsayılan olarak kapalıdır; sunucu için `allow_actions = true` gerekir ve her seferinde onay istenir. Uzak kullanıcı root değilse `sudo -n systemctl restart` kullanılır (parola istemez; sudo izni yoksa hata gösterilir).
+- Webhook URL'si, bot token'ı gibi sırlar loglara ve hata mesajlarına yazılmaz. `nobetci check` de yalnızca bildirici adlarını gösterir.
+- Sunucu çıktısındaki (log vb.) ANSI/kontrol karakterleri terminale ulaşmadan temizlenir.
+
+## Daemon (arka plan servisi)
+
+`nobetci daemon` TUI açmadan izler ve uyarıları Discord/Telegram'a gönderir; SIGINT/SIGTERM ile temiz kapanır, logları stderr'e yazar (journald yakalar). systemd kullanıcı birimi örneği [`contrib/nobetci.service`](contrib/nobetci.service) dosyasındadır; birim `~/.cargo/bin/nobetci` yolunu varsayar, binary başka yerdeyse `ExecStart` satırını düzenle.
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp contrib/nobetci.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now nobetci
+
+systemctl --user status nobetci
+journalctl --user -u nobetci -f
+loginctl enable-linger "$USER"   # oturum kapansa da çalışmaya devam etsin
+```
+
+Daemon'u başlatmadan önce `nobetci check --test-notify` ile config'i ve bildirimleri dene; bilinmeyen host varsa onu da orada onaylamış olursun.
+
+## Geliştirme
+
+```bash
+cargo test                         # birim ve parser testleri (sunucu gerekmez)
+cargo run -- --demo                # sahte veriyle TUI
+cargo run -- --demo daemon         # sahte veriyle daemon (bildirimsiz)
+cargo fmt --check && cargo clippy --all-targets -- -D warnings
+vhs assets/demo.tape               # README GIF'ini yeniden üretir (vhs gerekir)
+```
+
+Demo modunda bir uyarı yaklaşık 5. saniyede ateşlenir, biri yaklaşık 25. saniyede çözülür; ekran görüntüleri için kullanışlıdır. Değişiklikler [CHANGELOG.md](CHANGELOG.md) dosyasında tutulur.
 
 ## Yol haritası
 
