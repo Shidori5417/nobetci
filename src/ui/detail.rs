@@ -130,26 +130,61 @@ fn draw_header(f: &mut Frame, area: Rect, st: &ServerState) {
     );
 }
 
+/// Çekirdek numarasının hane sayısı (en az 2): etiketler hizalı kalır.
+fn core_digits(n: usize) -> usize {
+    n.saturating_sub(1).to_string().len().max(2)
+}
+
+/// `n` çekirdeği `w`×`h` alana yerleştirir; `(sütun, gösterilen çekirdek)` döner.
+/// Sığmazsa son satır "+N çekirdek" göstergesine ayrılır (gösterilen sayı buna göre düşer).
+fn core_layout(n: usize, w: u16, h: u16) -> (usize, usize) {
+    // Hücre: "c" + numara + boşluk + gauge (15) + ayırıcı boşluk.
+    let cell_w = core_digits(n) + 18;
+    let (rows, max_cols) = (h as usize, (w as usize / cell_w).max(1));
+    if n == 0 || rows == 0 {
+        return (1, 0);
+    }
+    if n <= rows * max_cols {
+        // Gereğinden fazla sütun açılmaz.
+        return (n.div_ceil(rows), n);
+    }
+    // Sığmıyor: bir satır gösterge için ayrılır.
+    (max_cols, (rows - 1) * max_cols)
+}
+
 fn draw_cores(f: &mut Frame, area: Rect, st: &ServerState) {
+    let block = Block::bordered();
+    let inner = block.inner(area);
+    let mut title = " Çekirdekler ".to_string();
     let lines: Vec<Line> = match &st.latest.cpu {
-        Some(c) if !c.cores.is_empty() => c
-            .cores
-            .iter()
-            .enumerate()
-            .map(|(i, v)| Line::from(vec![Span::raw(format!("c{i:<2} ")), gauge(Some(*v))]))
-            .collect(),
+        Some(c) if !c.cores.is_empty() => {
+            title = format!(" Çekirdekler (toplam {:.0}%) ", c.total);
+            let n = c.cores.len();
+            let d = core_digits(n);
+            let (cols, shown) = core_layout(n, inner.width, inner.height);
+            let mut lines: Vec<Line> = (0..shown)
+                .step_by(cols)
+                .map(|row| {
+                    let mut spans = Vec::new();
+                    for i in row..(row + cols).min(shown) {
+                        spans.push(Span::raw(format!("c{i:<d$} ")));
+                        spans.push(gauge(Some(c.cores[i])));
+                        spans.push(Span::raw(" "));
+                    }
+                    Line::from(spans)
+                })
+                .collect();
+            if shown < n {
+                lines.push(Line::styled(
+                    format!("+{} çekirdek", n - shown),
+                    Style::new().fg(Color::DarkGray),
+                ));
+            }
+            lines
+        }
         _ => vec![Line::styled("veri yok", Style::new().fg(Color::DarkGray))],
     };
-    let total = st.latest.cpu.as_ref().map(|c| c.total);
-    let title = match total {
-        Some(t) => format!(" Çekirdekler (toplam {t:.0}%) "),
-        None => " Çekirdekler ".into(),
-    };
-    // Paragraph taşan satırları keser; çok çekirdekli sunucuda ilk satırlar görünür.
-    f.render_widget(
-        Paragraph::new(lines).block(Block::bordered().title(title)),
-        area,
-    );
+    f.render_widget(Paragraph::new(lines).block(block.title(title)), area);
 }
 
 fn draw_sparklines(f: &mut Frame, area: Rect, st: &ServerState) {
@@ -271,6 +306,69 @@ mod tests {
         assert_eq!(format_bytes(1536), "1.5K");
         assert_eq!(format_bytes(3 << 30), "3.0G");
         assert_eq!(format_rate(2048.0), "2.0K/s");
+    }
+
+    #[test]
+    fn cekirdek_izgarasi_sigar_ya_da_gosterge_ayirir() {
+        // 8 çekirdek, 46 geniş (2 sütun), 7 satır: 2 sütun x 4 satır yeter.
+        assert_eq!(core_layout(8, 46, 7), (2, 8));
+        // Tek sütun, 7 satır: 6 gösterilir + gösterge satırı.
+        assert_eq!(core_layout(8, 30, 7), (1, 6));
+        // 128 çekirdek her zaman sınırı aşmaz.
+        let (cols, shown) = core_layout(128, 100, 10);
+        assert!(cols * 9 >= shown && shown <= 45);
+        assert_eq!(core_layout(8, 0, 5).0, 1);
+        assert_eq!(core_layout(8, 10, 0), (1, 0));
+        assert_eq!(core_layout(0, 10, 5), (1, 0));
+        for (n, w, h) in [(1, 1, 1), (64, 200, 3), (5, 19, 1), (128, 20, 2)] {
+            let (c, s) = core_layout(n, w, h);
+            assert!(c >= 1 && s <= n && s <= c * (h as usize));
+        }
+    }
+
+    fn many_cores(n: usize) -> App {
+        let mut snap = demo::snapshots(1).remove(0);
+        if let Some(c) = &mut snap.cpu {
+            c.cores = (0..n).map(|i| (i % 101) as f64).collect();
+        }
+        App::new(vec![snap])
+    }
+
+    fn screen(term: &Terminal<TestBackend>) -> String {
+        term.backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect()
+    }
+
+    #[test]
+    fn cok_cekirdekte_her_boyutta_panic_olmaz_ve_gosterge_cikar() {
+        for n in [8, 64, 128] {
+            let mut app = many_cores(n);
+            app.detail = true;
+            for (w, h) in [(80, 24), (40, 10), (1, 1)] {
+                let mut term = Terminal::new(TestBackend::new(w, h)).unwrap();
+                term.draw(|f| draw(f, &app)).unwrap();
+                if (w, h) == (80, 24) {
+                    let text = screen(&term);
+                    // 8 çekirdek 80x24te sığabilir; 64 ve 128 için gösterge şart.
+                    assert!(n == 8 || text.contains("çekirdek"), "n={n}");
+                    assert!(text.contains("c0"));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn genis_ekranda_8_cekirdek_cok_sutunda_hepsi_gorunur() {
+        let mut app = many_cores(8);
+        app.detail = true;
+        let mut term = Terminal::new(TestBackend::new(160, 45)).unwrap();
+        term.draw(|f| draw(f, &app)).unwrap();
+        let text = screen(&term);
+        assert!(text.contains("c7") && !text.contains("+"), "{text}");
     }
 
     #[test]

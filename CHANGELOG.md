@@ -15,3 +15,4 @@ sürümleme [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar
 - `--demo` modu: gerçek sunucu olmadan sahte veriyle TUI'yi çalıştırma.
 - Genel bakış ekranı: sunucu kartları, CPU/RAM/disk gauge'ları, load, uptime ve düşen servis sayısı.
 - `/proc` parser'ları (`/proc/stat`, `/proc/meminfo`, `/proc/loadavg`, `/proc/net/dev`, `/proc/uptime`) ve bunların birim testleri.
+- Detay ekranı: çekirdek çubukları alana göre çok sütunlu ızgarada gösterilir; sığmayanlar için "+N çekirdek" göstergesi.
