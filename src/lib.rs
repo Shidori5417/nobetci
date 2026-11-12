@@ -1,6 +1,7 @@
 //! Nöbetçi: SSH üzerinden agent'sız çoklu sunucu izleme.
 
 pub mod actions;
+pub mod alert;
 pub mod check;
 pub mod collector;
 pub mod config;

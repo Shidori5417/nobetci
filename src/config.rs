@@ -29,6 +29,10 @@ pub enum ConfigError {
     MissingHost(String),
     #[error("geçersiz süre '{0}' (örnek: 30s, 5m, 1h)")]
     InvalidDuration(String),
+    #[error("geçersiz uyarı kuralı {0}")]
+    InvalidAlert(String),
+    #[error("uyarı kuralı '{rule}' tanımsız sunucuyu adlandırıyor: {server}")]
+    UnknownAlertServer { rule: String, server: String },
 }
 
 /// Loglara sızmaması için `Debug` çıktısı `***` olan gizli değer.
@@ -95,7 +99,7 @@ pub struct TelegramConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AlertRule {
-    /// Kural ifadesi; ayrıştırılması alert fazında yapılacak.
+    /// Kural ifadesi; `alert::AlertRule::parse` ile ayrıştırılır, `validate` doğrular.
     pub when: String,
     #[serde(default, rename = "for", deserialize_with = "de_duration")]
     pub for_duration: Option<Duration>,
@@ -158,7 +162,7 @@ impl Config {
                 return Err(ConfigError::MissingHost(s.name.clone()));
             }
         }
-        Ok(())
+        crate::alert::validate(&self.alerts, &self.servers)
     }
 }
 
