@@ -22,3 +22,8 @@ sürümleme [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar
 - Log araması: `/` arama (eşleşmeler vurgulanır, Türkçe/çok baytlı metinde güvenli), `n`/`N` ile eşleşmeler arasında gezinme (uçlarda sarar, takipten çıkar), `f` ile yalnızca eşleşenleri gösterme.
 - Restart: root kontrolü SSH kullanıcı adına göre değil, uzakta çalışma anında (`id -u`) yapılır.
 - `--demo`: sahte log akışı ve sahte restart (yalnızca `vds-1` için işlemler açık).
+- Alert motoru (`for` süreli eşik, `service_down`, `unreachable` kuralları; tek ateşleme, tek çözüldü olayı) ve Discord/Telegram bildirimcileri (retry, rate limit, token gizleme).
+- `nobetci daemon`: TUI'siz izleme; uyarı olaylarını Discord/Telegram'a gönderir, SIGINT/SIGTERM ile temiz kapanır, loglar stderr'e (journald) gider. `--demo` ile de çalışır (bildirimsiz).
+- TUI Uyarılar ekranı (`a`): aktif uyarılar ve geçmiş; genel bakışta aktif uyarı sayısı ve uyarısı olan sunucularda işaret.
+- `--demo`: bir uyarı ~5. sn'de ateşlenir, biri ~25. sn'de çözülür (ekran görüntüleri için).
+- `nobetci check`: uyarı kuralı sayısı ve bildirici adları (sır yok); `--test-notify` ile her bildiriciye test mesajı.

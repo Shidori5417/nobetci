@@ -65,7 +65,10 @@ Arch / CachyOS için AUR paketi planlanıyor: `nobetci-bin`.
 nobetci init      # örnek config dosyasını oluşturur
 nobetci           # TUI'yi açar
 nobetci daemon    # arka planda izler ve bildirim gönderir
+nobetci check --test-notify   # config'i, bağlantıları ve bildirim kanallarını dener
 ```
+
+TUI de uyarı kurallarını çalıştırır (Uyarılar ekranı) ama bildirim göndermez; bildirimleri yalnızca `daemon` gönderir, böylece ikisi birlikte açıkken çift mesaj gitmez.
 
 Config dosyası `~/.config/nobetci/config.toml` konumundadır:
 
@@ -108,6 +111,7 @@ servers = ["vds-1"]
 | `Esc` | Geri / kapat |
 | `s` | Detayda servis listesine odaklan |
 | `r` | Seçili servisi yeniden başlat (onay ister, `allow_actions = true` gerekir) |
+| `a` | Uyarılar: aktif ve geçmiş (`j`/`k` kaydır, `Esc` geri) |
 | `l` | Loglar (seçili servis ya da tüm günlük) |
 | `/` | Log araması: eşleşmeler vurgulanır (`Enter` uygula, `Esc` temizle) |
 | `n` / `N` | Sonraki / önceki eşleşme (uçlarda sarar, takipten çıkar) |

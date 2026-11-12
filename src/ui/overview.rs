@@ -139,7 +139,14 @@ pub fn draw(f: &mut Frame, app: &App, table_state: &mut TableState) {
         };
         Row::new([
             Cell::from(health_icon(health(s))),
-            Cell::from(s.name.clone()),
+            if app.has_alert(&s.name) {
+                Cell::from(Span::styled(
+                    format!("{} ⚠", s.name),
+                    Style::new().fg(Color::Red),
+                ))
+            } else {
+                Cell::from(s.name.clone())
+            },
             Cell::from(gauge(s.cpu.as_ref().map(|c| c.total))),
             Cell::from(gauge(mem_percent(s))),
             Cell::from(gauge(max_disk_percent(s))),
@@ -151,6 +158,18 @@ pub fn draw(f: &mut Frame, app: &App, table_state: &mut TableState) {
             Cell::from(down_cell),
         ])
     });
+    let n_alerts = app.alerts.active.len();
+    let title = if n_alerts > 0 {
+        Line::from(vec![
+            Span::raw(" Nöbetçi "),
+            Span::styled(
+                format!("— ⚠ {n_alerts} aktif uyarı "),
+                Style::new().fg(Color::Red).add_modifier(Modifier::BOLD),
+            ),
+        ])
+    } else {
+        Line::from(" Nöbetçi ")
+    };
     let table = Table::new(
         rows,
         [
@@ -165,7 +184,7 @@ pub fn draw(f: &mut Frame, app: &App, table_state: &mut TableState) {
         ],
     )
     .header(header)
-    .block(Block::bordered().title(" Nöbetçi "))
+    .block(Block::bordered().title(title))
     .row_highlight_style(Style::new().add_modifier(Modifier::REVERSED));
 
     table_state.select((!app.states.is_empty()).then_some(app.selected));
@@ -178,7 +197,7 @@ pub fn draw(f: &mut Frame, app: &App, table_state: &mut TableState) {
         .and_then(|st| st.latest.error.as_deref());
     let footer_line = match err {
         Some(e) => Paragraph::new(format!(" ✗ {e}")).style(Style::new().fg(Color::Red)),
-        None => Paragraph::new(" j/k: seç   Enter: detay   ?: yardım   q: çıkış")
+        None => Paragraph::new(" j/k: seç   Enter: detay   a: uyarılar   ?: yardım   q: çıkış")
             .style(Style::new().fg(Color::DarkGray)),
     };
     f.render_widget(footer_line, footer);
@@ -194,6 +213,7 @@ const HELP: &[(&str, &str)] = &[
     ("Esc", "Geri / kapat"),
     ("s", "Detayda servis listesine odaklan"),
     ("r", "Seçili servisi yeniden başlat (onay ister)"),
+    ("a", "Uyarılar (aktif ve geçmiş; Esc geri)"),
     ("l", "Loglar (seçili servis ya da tüm günlük)"),
     ("/", "Log araması (Enter uygula, Esc temizle)"),
     ("n / N", "Sonraki / önceki eşleşme (uçlarda sarar)"),

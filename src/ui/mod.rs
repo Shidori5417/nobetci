@@ -1,5 +1,6 @@
 //! ratatui ekranları.
 
+mod alerts;
 mod detail;
 mod logs;
 mod overview;
@@ -12,6 +13,7 @@ use tokio::sync::{mpsc, watch};
 use crate::actions::{Actions, Outcome};
 use crate::logs::LogMsg;
 use crate::model::ServerSnapshot;
+use crate::monitor::AlertState;
 use crate::state::ServerState;
 use logs::{LogKey, LogView};
 
@@ -45,6 +47,10 @@ pub struct App {
     pub confirm: Option<Confirm>,
     /// Son işlem sonucu / ipucu; detay ekranının alt satırında gösterilir.
     pub status: Option<(Level, String)>,
+    /// Uyarılar ekranı açık mı (`a`)?
+    pub show_alerts: bool,
+    pub alert_scroll: usize,
+    pub alerts: AlertState,
     logs: Option<LogView>,
     actions: Actions,
 }
@@ -61,6 +67,9 @@ impl App {
             svc_sel: 0,
             confirm: None,
             status: None,
+            show_alerts: false,
+            alert_scroll: 0,
+            alerts: AlertState::default(),
             logs: None,
             actions,
         };
@@ -75,6 +84,27 @@ impl App {
             st.push(snap);
         }
         self.selected = self.selected.min(self.states.len().saturating_sub(1));
+    }
+
+    /// Bu sunucuda aktif (ateşlenmiş) uyarı var mı?
+    pub fn has_alert(&self, server: &str) -> bool {
+        self.alerts.active.iter().any(|a| a.server == server)
+    }
+
+    fn alerts_key(&mut self, code: KeyCode) {
+        let max = alerts::line_count(self).saturating_sub(1);
+        match code {
+            KeyCode::Char('q') => self.should_quit = true,
+            KeyCode::Char('?') => self.show_help = true,
+            KeyCode::Esc | KeyCode::Char('a') => self.show_alerts = false,
+            KeyCode::Char('j') | KeyCode::Down => {
+                self.alert_scroll = (self.alert_scroll + 1).min(max)
+            }
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.alert_scroll = self.alert_scroll.saturating_sub(1)
+            }
+            _ => {}
+        }
     }
 
     pub fn select_next(&mut self) {
@@ -206,12 +236,20 @@ impl App {
             }
             return;
         }
+        if self.show_alerts {
+            self.alerts_key(code);
+            return;
+        }
         if self.detail && self.detail_key(code) {
             return;
         }
         match code {
             KeyCode::Char('q') => self.should_quit = true,
             KeyCode::Char('?') => self.show_help = true,
+            KeyCode::Char('a') => {
+                self.show_alerts = true;
+                self.alert_scroll = 0;
+            }
             KeyCode::Char('j') | KeyCode::Down => self.select_next(),
             KeyCode::Char('k') | KeyCode::Up => self.select_prev(),
             KeyCode::Enter if !self.states.is_empty() => {
@@ -229,13 +267,21 @@ impl App {
 /// Panic durumunda da `ratatui::init` içindeki hook terminali geri yükler.
 pub async fn run(
     mut data: watch::Receiver<Vec<ServerSnapshot>>,
+    mut alerts: watch::Receiver<AlertState>,
     actions: Actions,
     mut outcomes: mpsc::UnboundedReceiver<Outcome>,
 ) -> Result<()> {
     // color_eyre::install() çağrısı main'de, bundan önce yapılmış olmalı;
     // ratatui::init mevcut panic hook'unu zincirler.
     let mut terminal = ratatui::init();
-    let result = event_loop(&mut terminal, &mut data, actions, &mut outcomes).await;
+    let result = event_loop(
+        &mut terminal,
+        &mut data,
+        &mut alerts,
+        actions,
+        &mut outcomes,
+    )
+    .await;
     ratatui::restore();
     result
 }
@@ -243,10 +289,12 @@ pub async fn run(
 async fn event_loop(
     terminal: &mut ratatui::DefaultTerminal,
     data: &mut watch::Receiver<Vec<ServerSnapshot>>,
+    alerts: &mut watch::Receiver<AlertState>,
     actions: Actions,
     outcomes: &mut mpsc::UnboundedReceiver<Outcome>,
 ) -> Result<()> {
     let mut app = App::new(data.borrow_and_update().clone(), actions);
+    app.alerts = alerts.borrow_and_update().clone();
     let mut events = EventStream::new();
     let mut table_state = ratatui::widgets::TableState::default();
     // Yeniden deneme geri sayımı için saniyede bir yeniden çizim.
@@ -259,6 +307,8 @@ async fn event_loop(
                 if app.show_help {
                     overview::draw_help(f);
                 }
+            } else if app.show_alerts {
+                alerts::draw(f, &app);
             } else if app.detail {
                 detail::draw(f, &app);
             } else {
@@ -270,6 +320,11 @@ async fn event_loop(
             changed = data.changed() => {
                 if changed.is_ok() {
                     app.set_servers(&data.borrow_and_update());
+                }
+            }
+            changed = alerts.changed() => {
+                if changed.is_ok() {
+                    app.alerts = alerts.borrow_and_update().clone();
                 }
             }
             Some(o) = outcomes.recv() => app.on_outcome(o),
@@ -402,5 +457,85 @@ mod tests {
         // Görüntüleyici açıkken `q` uygulamayı kapatmaz, yalnızca görüntüleyiciyi.
         key(&mut app, KeyCode::Esc);
         assert!(app.logs.is_none() && app.detail && !app.should_quit);
+    }
+
+    fn render(app: &App, w: u16, h: u16) -> String {
+        let mut t = ratatui::Terminal::new(ratatui::backend::TestBackend::new(w, h)).unwrap();
+        let mut ts = ratatui::widgets::TableState::default();
+        t.draw(|f| {
+            if app.show_alerts {
+                alerts::draw(f, app);
+            } else {
+                overview::draw(f, app, &mut ts);
+            }
+        })
+        .unwrap();
+        t.backend().to_string()
+    }
+
+    fn app_with_alerts() -> App {
+        use crate::alert::{ActiveAlert, AlertEvent, AlertEventKind};
+        let now = std::time::SystemTime::now();
+        let mut app = App::new(demo::snapshots(0), test_actions());
+        app.alerts = AlertState {
+            active: vec![ActiveAlert {
+                server: "yedek".into(),
+                rule: "service_down".into(),
+                subject: Some("minecraft".into()),
+                message: "servis minecraft çalışmıyor".into(),
+                since: now,
+            }],
+            history: vec![AlertEvent {
+                kind: AlertEventKind::Resolved,
+                key: "k".into(),
+                server: "vds-1".into(),
+                rule: "cpu > 85".into(),
+                subject: None,
+                message: "çözüldü".into(),
+                started_at: now,
+                at: now,
+            }],
+        };
+        app
+    }
+
+    #[test]
+    fn a_tusu_uyarilari_acar_esc_kapatir_ve_kaydirir() {
+        let mut app = app_with_alerts();
+        key(&mut app, KeyCode::Char('a'));
+        assert!(app.show_alerts);
+        key(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.alert_scroll, 1);
+        key(&mut app, KeyCode::Char('k'));
+        key(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.alert_scroll, 0);
+        for _ in 0..50 {
+            key(&mut app, KeyCode::Down);
+        }
+        assert!(app.alert_scroll < alerts::line_count(&app));
+        key(&mut app, KeyCode::Esc);
+        assert!(!app.show_alerts && !app.should_quit);
+        // Detaydayken de açılır.
+        key(&mut app, KeyCode::Enter);
+        key(&mut app, KeyCode::Char('a'));
+        assert!(app.show_alerts);
+    }
+
+    #[test]
+    fn uyarilar_ve_genel_bakis_her_boyutta_cizilir() {
+        let mut app = app_with_alerts();
+        let ov = render(&app, 80, 24);
+        assert!(ov.contains("1 aktif uyarı") && ov.contains("yedek ⚠"));
+        app.show_alerts = true;
+        let out = render(&app, 80, 24);
+        assert!(out.contains("Aktif uyarılar (1)") && out.contains("minecraft"));
+        assert!(out.contains("Geçmiş (1)"));
+        for (w, h) in [(1, 1), (5, 2), (20, 5), (200, 60)] {
+            for show in [true, false] {
+                app.show_alerts = show;
+                app.alert_scroll = 99;
+                render(&app, w, h);
+            }
+        }
     }
 }

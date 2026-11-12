@@ -3,7 +3,10 @@
 
 use std::io::{IsTerminal, Write};
 
+use std::time::SystemTime;
+
 use crate::config::Config;
+use crate::notify::{self, Notification, NotificationKind};
 use crate::parser;
 use crate::ssh::{self, SshError};
 
@@ -91,9 +94,53 @@ async fn check_server(s: &crate::config::ServerConfig) -> Result<String, SshErro
     ))
 }
 
+/// Yapılandırılmış her bildiriciye test mesajı yollar; hepsi başarılıysa `true`.
+async fn test_notify(cfg: &Config) -> bool {
+    let notifiers = notify::from_config(&cfg.notify);
+    let n = Notification {
+        kind: NotificationKind::Resolved,
+        server: "nobetci".into(),
+        title: "🔔 Nöbetçi test bildirimi".into(),
+        body: "Bildirim kanalı çalışıyor.".into(),
+        at: SystemTime::now(),
+    };
+    if notifiers.is_empty() {
+        println!("✗ bildirim: yapılandırılmış bildirici yok");
+        return false;
+    }
+    let mut ok = true;
+    for nf in &notifiers {
+        match nf.send(&n).await {
+            Ok(()) => println!("✓ bildirim {}: gönderildi", nf.name()),
+            Err(e) => {
+                ok = false;
+                println!("✗ bildirim {}: {e}", nf.name());
+            }
+        }
+    }
+    ok
+}
+
 /// Tüm sunucuları sırayla dener; hepsi başarılıysa `true`.
-pub async fn run(cfg: &Config) -> bool {
+pub async fn run(cfg: &Config, test_notify_too: bool) -> bool {
     println!("Config geçerli: {} sunucu", cfg.servers.len());
+    println!("Uyarı kuralı: {}", cfg.alerts.len());
+    // Yalnızca adlar yazılır; webhook/token asla.
+    let mut names = Vec::new();
+    if cfg.notify.discord.is_some() {
+        names.push("discord");
+    }
+    if cfg.notify.telegram.is_some() {
+        names.push("telegram");
+    }
+    println!(
+        "Bildiriciler: {}",
+        if names.is_empty() {
+            "yok".to_string()
+        } else {
+            names.join(", ")
+        }
+    );
     let mut all_ok = true;
     for s in &cfg.servers {
         match check_server(s).await {
@@ -103,6 +150,9 @@ pub async fn run(cfg: &Config) -> bool {
                 println!("✗ {}: {e}", s.name);
             }
         }
+    }
+    if test_notify_too {
+        all_ok &= test_notify(cfg).await;
     }
     all_ok
 }

@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use tokio::sync::watch;
 
+use crate::alert::AlertRule;
 use crate::config::ServerConfig;
 use crate::model::{CpuUsage, DiskUsage, LoadAvg, MemInfo, ServerSnapshot, ServiceStatus};
 
@@ -87,7 +88,11 @@ pub fn snapshots(tick: u64) -> Vec<ServerSnapshot> {
     });
 
     let mut yedek = healthy("yedek", 4.2, tick, 2, 58.0);
-    yedek.services = vec![service("nginx", true), service("minecraft", false)];
+    // Her 60 sn'de ilk 25 sn düşük: uyarı ateşlenir, sonra çözülür, döngü tekrarlanır.
+    yedek.services = vec![
+        service("nginx", true),
+        service("minecraft", tick % 60 >= 25),
+    ];
 
     let down = ServerSnapshot {
         name: "eski-vds".into(),
@@ -120,6 +125,16 @@ pub fn server_configs() -> Vec<ServerConfig> {
             services: vec![],
             allow_actions: i == 0,
         })
+        .collect()
+}
+
+/// Demo uyarı kuralları: `yedek`te minecraft ~5. sn'de düşer, ~25. sn'de çözülür;
+/// `eski-vds` erişilemezdir (5 sn sonra ateşlenir, çözülmez).
+pub fn alert_rules() -> Vec<AlertRule> {
+    let five = Some(Duration::from_secs(5));
+    ["service_down", "unreachable"]
+        .iter()
+        .filter_map(|w| AlertRule::parse(w, five, vec!["*".into()]).ok())
         .collect()
 }
 
