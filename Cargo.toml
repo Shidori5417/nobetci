@@ -4,10 +4,13 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Agentless multi-server Linux monitoring TUI over SSH"
+repository = "https://github.com/Shidori5417/nobetci"
+homepage = "https://github.com/Shidori5417/nobetci"
 license = "MIT"
 readme = "README.md"
+exclude = ["PROMPT.md", "assets/*.gif", "assets/*.png", ".github/"]
 keywords = ["monitoring", "tui", "ssh", "server", "systemd"]
-categories = ["command-line-utilities"]
+categories = ["command-line-utilities", "visualization"]
 
 [[bin]]
 name = "nobetci"
@@ -40,3 +43,8 @@ time = { version = "0.3.45", features = ["formatting", "local-offset"] }
 
 [dev-dependencies]
 wiremock = "0.6.5"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

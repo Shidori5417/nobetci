@@ -15,7 +15,7 @@
 
 [Unit]
 Description=Nöbetçi sunucu izleme daemon'u
-Documentation=https://github.com/KULLANICI/nobetci
+Documentation=https://github.com/Shidori5417/nobetci
 After=network-online.target
 Wants=network-online.target
 
