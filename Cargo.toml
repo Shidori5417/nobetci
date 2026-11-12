@@ -33,3 +33,10 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 russh = "0.65"
 russh-config = "0.58"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "json"] }
+async-trait = "0.1.92"
+serde_json = "1.0.154"
+time = { version = "0.3.45", features = ["formatting"] }
+
+[dev-dependencies]
+wiremock = "0.6.5"

@@ -7,6 +7,7 @@ pub mod config;
 pub mod demo;
 pub mod logs;
 pub mod model;
+pub mod notify;
 pub mod parser;
 pub mod ssh;
 pub mod state;
