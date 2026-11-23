@@ -199,9 +199,10 @@ fn draw_cores(f: &mut Frame, area: Rect, st: &ServerState) {
                 .step_by(cols)
                 .map(|row| {
                     let mut spans = Vec::new();
-                    for i in row..(row + cols).min(shown) {
+                    let end = (row + cols).min(shown);
+                    for (i, &core) in c.cores.iter().enumerate().take(end).skip(row) {
                         spans.push(Span::raw(format!("c{i:<d$} ")));
-                        spans.push(gauge(Some(c.cores[i])));
+                        spans.push(gauge(Some(core)));
                         spans.push(Span::raw(" "));
                     }
                     Line::from(spans)
