@@ -5,10 +5,9 @@ edition = "2024"
 rust-version = "1.85"
 description = "Agentless multi-server Linux monitoring TUI over SSH"
 repository = "https://github.com/Shidori5417/nobetci"
-homepage = "https://github.com/Shidori5417/nobetci"
 license = "MIT"
 readme = "README.md"
-exclude = ["PROMPT.md", "assets/*.gif", "assets/*.png", ".github/"]
+exclude = ["assets/*.gif", "assets/*.png", ".github/"]
 keywords = ["monitoring", "tui", "ssh", "server", "systemd"]
 categories = ["command-line-utilities", "visualization"]
 
