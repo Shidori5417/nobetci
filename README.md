@@ -4,9 +4,10 @@
 
 **Birden fazla Linux sunucusunu tek terminal ekranından izle. Agent kurmana gerek yok, sadece SSH yeter.**
 
-[![Rust](https://img.shields.io/badge/rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/Shidori5417/nobetci/ci.yml?label=CI)](https://github.com/Shidori5417/nobetci/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Shidori5417/nobetci)](https://github.com/Shidori5417/nobetci/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
 
 ![Nöbetçi demo](assets/demo.gif)
 
@@ -57,7 +58,7 @@ cd nobetci
 cargo build --release   # çıktı: target/release/nobetci
 ```
 
-Sürüm etiketlerinde Linux x86_64 ve aarch64 için hazır derlenmiş paketler GitHub Releases sayfasına yüklenir. crates.io'ya yayınlandığında `cargo install nobetci` da çalışacaktır. Gereken en düşük Rust sürümü 1.85'tir (edition 2024).
+Linux x86_64 ve aarch64 için hazır derlenmiş paketler [GitHub Releases](https://github.com/Shidori5417/nobetci/releases/latest) sayfasında yayınlanır (ör. `nobetci-v0.1.0-x86_64-unknown-linux-gnu.tar.gz`). Gereken en düşük Rust sürümü 1.85'tir (edition 2024).
 
 ## Hızlı başlangıç
 
