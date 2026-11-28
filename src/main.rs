@@ -94,6 +94,20 @@ fn init_config(path: PathBuf, force: bool) -> Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(&path)?;
+        file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+        file.write_all(config::EXAMPLE_CONFIG.as_bytes())?;
+    }
+    #[cfg(not(unix))]
     std::fs::write(&path, config::EXAMPLE_CONFIG)?;
     println!("Örnek config yazıldı: {}", path.display());
     Ok(())
@@ -122,7 +136,7 @@ fn main() -> ExitCode {
         .map_err(Into::into)
         .and_then(|rt| rt.block_on(run()));
     match result {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => code,
         Err(e) => {
             // Kullanıcı hataları için kaynak konumu/backtrace gürültüsü gösterme;
             // ayrıntı isteyen RUST_BACKTRACE ile tam raporu alır.
@@ -137,11 +151,14 @@ fn main() -> ExitCode {
     }
 }
 
-async fn run() -> Result<()> {
+async fn run() -> Result<ExitCode> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Cmd::Init { force }) => return init_config(config_path(&cli)?, force),
+        Some(Cmd::Init { force }) => {
+            init_config(config_path(&cli)?, force)?;
+            return Ok(ExitCode::SUCCESS);
+        }
         Some(Cmd::Daemon) => {
             init_daemon_logging();
             let (monitor, notifiers) = if cli.demo {
@@ -151,14 +168,16 @@ async fn run() -> Result<()> {
                 let cfg = load_config(&cli)?;
                 (monitor::from_config(&cfg), notify::from_config(&cfg.notify))
             };
-            return daemon::run(monitor, notifiers).await;
+            daemon::run(monitor, notifiers).await?;
+            return Ok(ExitCode::SUCCESS);
         }
         Some(Cmd::Check { test_notify }) => {
             let cfg = load_config(&cli)?;
-            if !nobetci::check::run(&cfg, test_notify).await {
-                std::process::exit(1);
-            }
-            return Ok(());
+            return Ok(if nobetci::check::run(&cfg, test_notify).await {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            });
         }
         None => {}
     }
@@ -179,5 +198,6 @@ async fn run() -> Result<()> {
         (monitor::from_config(&cfg), Actions::new(cfg.servers, false))
     };
     tracing::info!("TUI başlıyor (demo={})", cli.demo);
-    ui::run(snapshots, alerts, actions.0, actions.1).await
+    ui::run(snapshots, alerts, actions.0, actions.1).await?;
+    Ok(ExitCode::SUCCESS)
 }

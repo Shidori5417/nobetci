@@ -157,7 +157,11 @@ impl client::Handler for Client {
     ) -> Result<bool, Self::Error> {
         // VARSAYIM: sunucu sertifikaları (CA ile imzalı host anahtarı) desteklenmez.
         let russh::keys::PublicKeyOrCertificate::PublicKey { key, .. } = key else {
-            *self.verdict.lock().unwrap() = Some(other("host sertifikaları desteklenmiyor"));
+            *self
+                .verdict
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                Some(other("host sertifikaları desteklenmiyor"));
             return Ok(false);
         };
         let fingerprint = key.fingerprint(HashAlg::Sha256).to_string();
@@ -177,7 +181,10 @@ impl client::Handler for Client {
             },
             Err(e) => other(format!("known_hosts okunamadı: {e}")),
         };
-        *self.verdict.lock().unwrap() = Some(err);
+        *self
+            .verdict
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(err);
         Ok(false)
     }
 }
@@ -212,16 +219,17 @@ async fn connect_inner(t: &Target) -> Result<Session, SshError> {
         port: t.port,
         verdict: verdict.clone(),
     };
-    let mut handle =
-        match client::connect(config, (t.host.as_str(), t.port), handler).await {
-            Ok(h) => h,
-            Err(e) => {
-                // Host anahtarı reddi, genel "UnknownKey" hatasından daha açıklayıcıdır.
-                return Err(verdict.lock().unwrap().take().unwrap_or_else(|| {
-                    other(format!("{}:{} bağlantı hatası: {e}", t.host, t.port))
-                }));
-            }
-        };
+    let mut handle = match client::connect(config, (t.host.as_str(), t.port), handler).await {
+        Ok(h) => h,
+        Err(e) => {
+            // Host anahtarı reddi, genel "UnknownKey" hatasından daha açıklayıcıdır.
+            return Err(verdict
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .take()
+                .unwrap_or_else(|| other(format!("{}:{} bağlantı hatası: {e}", t.host, t.port))));
+        }
+    };
     authenticate(&mut handle, t).await?;
     Ok(Session { handle })
 }
