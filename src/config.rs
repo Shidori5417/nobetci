@@ -54,6 +54,7 @@ impl fmt::Debug for Secret {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     /// Örnekleme aralığı (`interval = "2s"`); yoksa `DEFAULT_INTERVAL`.
     #[serde(default, deserialize_with = "de_duration")]
@@ -67,6 +68,7 @@ pub struct Config {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServerConfig {
     pub name: String,
     pub ssh_host: Option<String>,
@@ -81,23 +83,27 @@ pub struct ServerConfig {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct NotifyConfig {
     pub discord: Option<DiscordConfig>,
     pub telegram: Option<TelegramConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DiscordConfig {
     pub webhook_url: Secret,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TelegramConfig {
     pub bot_token: Secret,
     pub chat_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AlertRule {
     /// Kural ifadesi; `alert::AlertRule::parse` ile ayrıştırılır, `validate` doğrular.
     pub when: String,
@@ -265,5 +271,22 @@ servers = ["vds-1"]
         let tg = c.notify.telegram.unwrap();
         assert_eq!(format!("{:?}", tg.bot_token), "***");
         assert_eq!(tg.bot_token.expose(), "...");
+    }
+
+    #[test]
+    fn bilinmeyen_alan_reddedilir() {
+        for bad in [
+            "bilinmeyen = 1\n",
+            "[[server]]\nname=\"a\"\nhost=\"h\"\nallow_action = true\n",
+            "[notify]\nslack = {}\n",
+            "[notify.discord]\nwebhook = \"x\"\n",
+            "[notify.telegram]\ntoken = \"x\"\nchat_id = \"1\"\n",
+            "[[alert]]\nwhen = \"cpu > 80\"\nextra = 1\n",
+        ] {
+            assert!(
+                matches!(Config::parse(bad), Err(ConfigError::Parse(_))),
+                "{bad}"
+            );
+        }
     }
 }

@@ -35,10 +35,12 @@ chat_id = "..."                # Bildirimin gideceği sohbet kimliği
 
 # Uyarı kuralları. Her [[alert]] bloğu bir kuraldır.
 [[alert]]
-# Koşul. Desteklenen koşullar:
+# Koşul. Desteklenen koşullar (>, >=, <, <= işleçleriyle):
 #   cpu > 85            CPU kullanımı yüzde 85'in üzerinde
 #   mem > 90            RAM kullanımı yüzde 90'ın üzerinde
 #   disk_usage > 90     Disk doluluğu yüzde 90'ın üzerinde
+#   swap > 80           Swap kullanımı yüzde 80'in üzerinde
+#   load > 4            1 dakikalık load average değerinin üzerinde
 #   service_down        İzlenen servislerden biri çalışmıyor
 #   unreachable         Sunucuya SSH ile ulaşılamıyor
 when = "disk_usage > 90"

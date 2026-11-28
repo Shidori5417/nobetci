@@ -5,7 +5,7 @@
 #   systemctl --user daemon-reload
 #   systemctl --user enable --now nobetci
 #
-# Önce binary'nin kurulu olduğundan emin ol: cargo install nobetci
+# Önce binary'nin kurulu olduğundan emin ol: cargo install --git https://github.com/Shidori5417/nobetci
 # Durumu ve logları görmek için:
 #   systemctl --user status nobetci
 #   journalctl --user -u nobetci -f

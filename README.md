@@ -44,7 +44,7 @@ Bir servis çöktüğünde, disk dolmak üzereyken ya da sunucu erişilemez oldu
 
 | Genel bakış | Sunucu detayı | Loglar | Uyarılar |
 |---|---|---|---|
-| ![](assets/overview.png) | ![](assets/detail.png) | ![](assets/logs.png) | ![](assets/alerts.png) |
+| ![Genel bakış](assets/overview.png) | ![Sunucu detayı](assets/detail.png) | ![Loglar](assets/logs.png) | ![Uyarılar](assets/alerts.png) |
 
 ## Kurulum
 
@@ -72,7 +72,7 @@ nobetci --demo                # sahte veriyle dener, config ve sunucu gerekmez
 nobetci --config yol.toml     # varsayılan yerine başka bir config dosyası kullanır
 ```
 
-`--demo` ve `--config` her alt komutla birlikte kullanılabilir. TUI de uyarı kurallarını çalıştırır (Uyarılar ekranı) ama bildirim göndermez; bildirimleri yalnızca `daemon` gönderir, böylece ikisi birlikte açıkken çift mesaj gitmez.
+`--config` tüm alt komutlarla, `--demo` ise TUI ve `daemon` ile birlikte kullanılabilir. TUI de uyarı kurallarını çalıştırır (Uyarılar ekranı) ama bildirim göndermez; bildirimleri yalnızca `daemon` gönderir, böylece ikisi birlikte açıkken çift mesaj gitmez.
 
 Config dosyası varsayılan olarak `~/.config/nobetci/config.toml` konumundadır. Tüm anahtarların açıklamalı hali için [`config.example.toml`](config.example.toml) dosyasına bak.
 
@@ -187,4 +187,4 @@ PR'lar açık. Büyük bir değişiklik düşünüyorsan önce bir issue aç.
 
 ## Lisans
 
-MIT
+[MIT](LICENSE)

@@ -2,7 +2,7 @@
 
 Bu dosyadaki tüm önemli değişiklikler burada tutulur.
 
-Biçim [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/) standardına,
+Biçim [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) standardına,
 sürümleme [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 
 ## [Unreleased]
